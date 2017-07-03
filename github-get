@@ -27,20 +27,12 @@ version_latest() {
     )
 }
 
-if [ 1 -eq ${#} ]; then
-    github_url="${1}"
-    version="$(version_latest ${github_url})"
-elif [ 2 -eq ${#} ]; then
-    github_url="${1}"
-    version="${2}"
-else
-    die "bad args"
-fi
-cd $(mktemp -d)
+[ 0 -lt ${#} ] || die "bad args"
+github_url="${1}"
+version="${2:-$(version_latest ${github_url})}"
 project="$(basename ${github_url})"
-curl -sLo ${project}_${version}.tar.gz ${github_url}/archive/${version}.tar.gz
-tar -xf ${project}_${version}.tar.gz
-untarred_dir=$(find ${PWD} -mindepth 1 -maxdepth 1 -type d)
-cd -
-mv -v ${untarred_dir} ${PWD}
-ln -vs $(basename ${untarred_dir}) ${project}
+# github convention: project, hyphen, tagname
+project_version="${project}-${version}"
+curl -Lo ${project_version}.tar.gz ${github_url}/archive/${version}.tar.gz
+tar -vxf ${project_version}.tar.gz
+ln -vs ${project_version} ${project}
