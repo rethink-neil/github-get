@@ -31,8 +31,9 @@ version_latest() {
 github_url="${1}"
 version="${2:-$(version_latest ${github_url})}"
 project="$(basename ${github_url})"
-# github convention: project, hyphen, tagname
 project_version="${project}-${version}"
 curl -Lo ${project_version}.tar.gz ${github_url}/archive/${version}.tar.gz
-tar -vxf ${project_version}.tar.gz
+# github convention: project, hyphen, tagname; force it
+mkdir -vp ${project_version}
+tar -C ${project_version} --strip-components 1 -xf ${project_version}.tar.gz
 ln -vs ${project_version} ${project}
