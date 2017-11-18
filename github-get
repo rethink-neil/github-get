@@ -1,20 +1,20 @@
 #!/bin/sh
 
-# github-get
+# github-get/github-get
 
 set -eu
 
 usage() {
     cat <<EOF
-$(basename ${0}) GITHUB_URL [VERSION]
+Usage: $(basename ${0}) GITHUB_URL [RELEASE]
+Download, unpack, and symlink given github project release (default latest).
 
-Download, unpack, and softlink a github project (latest release by default) in
-the current working directory.
-
+Example:
+  $(basename ${0}) https://github.com/tianocore/edk2 vUDK2017
 EOF
 }
 
-die() { { echo "ERROR: ${@}" ; usage ; } >&2 ; exit 1 ; }
+die() { { echo "ERROR: ${@}"; usage; } >&2; exit 1; }
 
 version_latest() {
     (
@@ -24,6 +24,7 @@ version_latest() {
         sed 's/\.tar\.gz//' tarballs >versions
         sort -Vo versions versions
         tail -1 versions
+        rm -rf ${PWD}
     )
 }
 
@@ -36,4 +37,4 @@ curl -Lo ${project_version}.tar.gz ${github_url}/archive/${version}.tar.gz
 # github convention: project, hyphen, tagname; force it
 mkdir -vp ${project_version}
 tar -C ${project_version} --strip-components 1 -xf ${project_version}.tar.gz
-ln -vs ${project_version} ${project}
+ln -vsnf ${project_version} ${project}
