@@ -17,23 +17,23 @@ EOF
 die() { { echo "ERROR: ${@}"; usage; } >&2; exit 1; }
 
 # take a github url, return a list of release tags
-tag_list() {
+release_list() {
     curl -fsL "${@}/releases" \
         | grep -Eo "[^\"]+\.tar\.gz" \
         | sed -r 's|.+/archive/(.+)\.tar\.gz$|\1|g'
 }
 
 # take a github url, return the tag with the biggest version
-tag_latest() { tag_list "${@}" | sort -Vu | tail -1; }
+release_latest() { release_list "${@}" | sort -Vu | tail -1; }
 
 [ 0 -lt ${#} ] || die "bad args"
 github_url="${1}"
-tagname="${2:-$(tag_latest ${1})}"
+release="${2:-$(release_latest ${1})}"
 project="$(basename ${github_url})"
-# force a debian convention: project, underscore, tagname (without any embedded
+# force a debian convention: project, underscore, version (without any embedded
 # solidi)
-project_version="${project}_$(echo ${tagname} | tr -d '/')"
-curl -fLo ${project_version}.tar.gz ${github_url}/archive/${tagname}.tar.gz
+project_version="${project}_$(echo ${release} | tr -d '/')"
+curl -fLo ${project_version}.tar.gz ${github_url}/archive/${release}.tar.gz
 mkdir -vp ${project_version}
 tar -C ${project_version} --strip-components 1 -xf ${project_version}.tar.gz
 ln -vsnf ${project_version} ${project}
