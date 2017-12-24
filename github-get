@@ -32,7 +32,7 @@ tagname="${2:-$(tag_latest ${1})}"
 project="$(basename ${github_url})"
 # force a debian convention: project, underscore, tagname (without any embedded
 # solidi)
-project_version="${project}_$(echo ${the_tag} | tr -d '/')"
+project_version="${project}_$(echo ${tagname} | tr -d '/')"
 curl -fLo ${project_version}.tar.gz ${github_url}/archive/${tagname}.tar.gz
 mkdir -vp ${project_version}
 tar -C ${project_version} --strip-components 1 -xf ${project_version}.tar.gz
