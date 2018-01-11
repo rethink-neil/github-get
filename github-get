@@ -6,16 +6,11 @@ set -eu
 
 usage() {
     cat <<EOF
-Usage: $(basename ${0}) [OPTION]... GITHUB_URL [RELEASE]
-Get (or list) releases on github projects.
+Usage: $(basename ${0}) GITHUB_URL [RELEASE]
+Download, unpack, and symlink given github project release (default latest).
 
-Options:
-    -h   print usage and exit
-    -l   list releases
-
-Examples:
-    $(basename ${0}) https://github.com/tianocore/edk2 vUDK2017
-    $(basename ${0}) -l https://github.com/nodejs/node
+Example:
+  $(basename ${0}) https://github.com/tianocore/edk2 vUDK2017
 EOF
 }
 
@@ -25,28 +20,14 @@ die() { { echo "ERROR: ${@}"; usage; } >&2; exit 1; }
 release_list() {
     curl -fsL "${@}/releases" \
         | grep -Eo "[^\"]+\.tar\.gz" \
-        | sed -r 's|.+/archive/(.+)\.tar\.gz$|\1|g' \
-        | sort -Vu
+        | sed -r 's|.+/archive/(.+)\.tar\.gz$|\1|g'
 }
 
 # take a github url, return the tag with the biggest version
-release_latest() { release_list "${@}" | tail -1; }
-
-while getopts ":hl" opt; do
-    case "${opt}" in
-        h) usage; exit 0;;
-        l) _list="true";;
-        \?) die "bad option: -${OPTARG}";;
-    esac
-done
-shift $((${OPTIND} - 1))
+release_latest() { release_list "${@}" | sort -Vu | tail -1; }
 
 [ 0 -lt ${#} ] || die "bad args"
 github_url="${1}"
-if [ "true" = "${_list}" ]; then
-    release_list "${github_url}"
-    exit ${?}
-fi
 release="${2:-$(release_latest ${1})}"
 project="$(basename ${github_url})"
 # force a debian convention: project, underscore, version (without any embedded
