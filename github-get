@@ -4,11 +4,9 @@
 
 set -eu
 
-_list="false"
-
 usage() {
     cat <<EOF
-Usage: $(basename ${0}) [OPTION]... GITHUB_URL [RELEASE]...
+Usage: $(basename ${0}) [OPTION]... OWNER/PROJECT [RELEASE]...
 Get (or list) releases on github projects.
 
 Options:
@@ -23,36 +21,36 @@ EOF
 
 die() { { echo "ERROR: ${@}"; usage; } >&2; exit 1; }
 
-# take a github url, return a version-sorted list of release tags
-release_list() {
-    curl -fsL "${@}/releases" \
-        | grep -Eo "[^\"]+\.tar\.gz" \
-        | sed -r 's|.+/archive/(.+)\.tar\.gz$|\1|g' \
-        | sort -Vu
-}
-
 while getopts ":hl" opt; do
     case "${opt}" in
         h) usage; exit 0;;
-        l) _list="true";;
+        l) do_list="true";;
         \?) die "bad option: -${OPTARG}";;
     esac
 done
 shift $((${OPTIND} - 1))
 
 [ 0 -lt ${#} ] || die "bad args"
-github_url="${1}"
-if [ "true" = "${_list}" ]; then
-    release_list "${github_url}"
+owner="$(basename $(dirname ${1}))"
+project="$(basename ${1})"
+tarball_urls=$(mktemp --suffix=.tarball.urls)
+curl -fsL "https://api.github.com/repos/${owner}/${project}/tags" \
+    | sed -nr '/"tarball_url":/{s/^.*"tarball_url": "([^"]+)",$/\1/gp}' \
+    | tac >${tarball_urls}
+releases=$(mktemp --suffix=.releases)
+<${tarball_urls} xargs basename -a >${releases}
+
+if [ "true" = "${do_list:-false}" ]; then
+    cat ${releases}
     exit ${?}
 fi
 shift
-project="$(basename ${github_url})"
-for release in ${@:-$(release_list ${github_url} | tail -1)}; do
+for release in ${@:-$(tail -1 ${releases})}; do
     # force a debian convention: project, underscore, version (without any
     # embedded solidi)
     project_version="${project}_$(echo ${release} | tr -d '/')"
-    curl -fLo ${project_version}.tar.gz ${github_url}/archive/${release}.tar.gz
+    curl -fLo ${project_version}.tar.gz \
+        https://api.github.com/repos/${owner}/${project}/tarball/${release}
     mkdir -vp ${project_version}
     tar -C ${project_version} --strip-components 1 -xf ${project_version}.tar.gz
     ln -vsnf ${project_version} ${project}
